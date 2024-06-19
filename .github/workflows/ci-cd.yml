@@ -1,73 +1,20 @@
-name: CI/CD Pipeline
+name: CI for TYPO3 Project
 
 on:
   push:
     branches:
       - main
-      - develop
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  build:
+  print-message:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-
-      - name: Install Composer Dependencies
-        run: composer install --no-progress --no-interaction
-
-      - name: Save Build Artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: build-artifacts
-          path: |
-            bin
-            public
-            src
-            config
-            vendor
-            build
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v2
-
-      - name: Restore Build Artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: build-artifacts
-          path: .
-
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Deploy to Server
-        run: |
-          ssh user@$SERVER_IP << 'EOF'
-            # Change to your desired directory
-            mkdir -p /var/www/typo3
-            cd /var/www/typo3
-
-            # Initialize the repository and pull code
-            git init
-            git remote add origin https://github.com/CRONEXi/typo3
-            git pull origin main
-
-            # Start the project with DDEV
-            ddev start
-          EOF
-        env:
-          SERVER_IP: ${{ secrets.SERVER_IP }}
+      - name: Print Hello, World!
+        run: echo "Hello, World!"
