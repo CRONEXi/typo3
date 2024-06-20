@@ -3,29 +3,104 @@
 namespace Deployer;
 
 require 'recipe/common.php';
+require 'contrib/rsync.php';
 
-// Project name
-set('application', 'my_typo3_project');
+set('rsync_src', '../');
 
-// Project repository
-set('repository', 'git@github.com:CRONEXi/typo3.git');
+import(__DIR__ . '/servers.yml');
 
-// Hosts
-host('157.90.119.127') // Replace 'your-hetzner-ip' with the actual IP address of your Hetzner VPS
-    ->set('remote_user', 'CRONEX_STAGING') // Replace 'your-username' with the SSH username you use to log into your Hetzner VPS
-    ->set('identity_file', '~/.ssh/id_rsa_ci_cd') // Path to your SSH private key
-    ->set('deploy_path', '/var/www/html/{{application}}'); // Path where you want to deploy the application on your server
+$sharedDirectories = [
+    'web/fileadmin',
+    'var'
+];
+set('shared_dirs', $sharedDirectories);
 
+$sharedFiles = [
+    '.env',
+    'web/.htaccess',
+];
+set('shared_files', $sharedFiles);
 
-// Tasks
-task('deploy', [
-    'deploy:prepare',
-    'deploy:vendors',
-    'deploy:publish',
+$writeableDirectories = [
+    'web/typo3temp'
+];
+set('writable_dirs', $writeableDirectories);
+
+$exclude = [
+    '.composer-cache',
+    'CODE_OF_CONDUCT.md',
+    'build',
+    '.git*',
+    '.ddev',
+    '.editorconfig',
+    '.idea',
+    '.php-cs-fixer.php',
+    'phpstan.neon',
+];
+
+set('rsync', [
+    'exclude' => array_merge($sharedDirectories, $sharedFiles, $exclude),
+    'exclude-file' => false,
+    'include' => [],
+    'include-file' => false,
+    'filter' => ['dir-merge,-n /.gitignore'],
+    'filter-file' => false,
+    'filter-perdir' => false,
+    'flags' => 'avz',
+    'options' => ['delete'],
+    'timeout' => 300
 ]);
 
-// [Optional] if deploy fails automatically unlock.
-after('deploy:failed', 'deploy:unlock');
+task('typo3:extension:setup', function () {
+    cd('{{release_path}}');
+    run('bin/typo3 extension:setup');
+});
 
-// Migrate database before symlink new release.
-before('deploy:symlink', 'database:migrate');
+task('typo3:cache:flush', function () {
+    cd('{{release_path}}');
+    run('bin/typo3 cache:flush');
+});
+
+task('typo3:language:update', function () {
+    cd('{{release_path}}');
+    run('bin/typo3 language:update');
+});
+
+// needed for t3o infrastructure
+task('php:reload', function () {
+    run('php-reload');
+})->select('stage=contentmaster');
+
+task('php:reload-prod', function () {
+    run('php-reload');
+})->select('stage=production');
+
+task('typo3:demo:disablelogin', function () {
+    cd('{{release_path}}');
+    run('{{bin/composer}} remove b13/demologin');
+})->select('stage=contentmaster');
+
+// Because we are using rsync, this task is disabled
+// to avoid to trigger git
+task('deploy:update_code')->hidden()->disable();
+
+task('deploy', [
+    'deploy:prepare',
+    'rsync',
+    'deploy:vendors',
+    'deploy:shared',
+    'deploy:writable',
+    'typo3:extension:setup',
+    'deploy:symlink',
+    'typo3:demo:disablelogin',
+    'php:reload',
+    'php:reload-prod',
+    'typo3:cache:flush',
+    'typo3:language:update',
+    'deploy:unlock',
+    'deploy:cleanup',
+    'deploy:success'
+]);
+
+// unlock after failure
+after('deploy:failed', 'deploy:unlock');
