@@ -1,4 +1,5 @@
 <?php
+
 namespace Deployer;
 
 require 'recipe/common.php';
@@ -12,7 +13,7 @@ set('repository', 'git@github.com:CRONEXi/typo3.git');
 // Hosts
 host('157.90.119.127')
     ->user('root')
-    ->identityFile('~/.ssh/id_rsa_ci_cd')
+    ->identityFile('~/.ssh/id_rsa')
     ->set('deploy_path', '/var/www/html/{{application}}');
 
 // Tasks
