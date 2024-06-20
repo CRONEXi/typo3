@@ -43,5 +43,8 @@
             "typo3/class-alias-loader": true,
             "typo3/cms-composer-installers": true
         }
+    },
+    "require-dev": {
+        "deployer/deployer": "^7.4"
     }
 }
