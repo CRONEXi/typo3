@@ -2,7 +2,7 @@ hosts:
   production:
     stage: production
     hostname: 157.90.119.127
-    remote_user: CRONEX_STAGING
+    remote_user: root
     writable_mode: chmod
     forward_agent: true
     deploy_path: ~/var/www/html/test
