@@ -7,11 +7,11 @@ require 'recipe/common.php';
 set('application', 'my_typo3_project');
 
 // Project repository
-set('repository', 'git@github.com:yourusername/your-repo.git');
+set('repository', 'git@github.com:CRONEXi/typo3.git');
 
 // Hosts
-host('your-hetzner-ip')
-    ->user('your-username')
+host('157.90.119.127')
+    ->user('root')
     ->identityFile('~/.ssh/id_rsa_ci_cd')
     ->set('deploy_path', '/var/www/html/{{application}}');
 
